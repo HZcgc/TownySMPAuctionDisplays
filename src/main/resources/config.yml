@@ -20,6 +20,12 @@ settings:
   sign-material: DARK_OAK_WALL_SIGN
   sign-glowing-text: false
   sign-layout-version: 2
+  # Maximum 15 characters so the instruction remains readable on one sign line.
+  sign-buy-text: "RIGHT-CLICK BUY"
+
+  # Sends the seller a private success message containing the real item display name.
+  # Set AxAuctions' own `sell.success` in lang.yml to an empty string to avoid duplicates.
+  custom-sell-message-enabled: true
 
   # The invisible click target around the floating item remains available too.
   # This lets the physical item remain behind glass while both item and sign clicks work.

@@ -40,6 +40,13 @@ public final class TownySMPAuctionDisplays extends JavaPlugin implements Listene
             getServer().getPluginManager().disablePlugin(this);
             return;
         }
+        try {
+            new SellMessageBridge(this).register(axAuctions.getClass().getClassLoader());
+        } catch (ReflectiveOperationException | LinkageError | RuntimeException exception) {
+            getLogger().log(Level.WARNING,
+                    "AxAuctions sell-event API was not found; custom item-name listing messages are disabled.",
+                    exception);
+        }
 
         displayManager = new DisplayManager(this, auctionBridge);
         DisplayCommand displayCommand = new DisplayCommand(this, displayManager);

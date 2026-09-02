@@ -4,9 +4,12 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.Parameter;
+import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -26,6 +29,8 @@ final class AuctionBridge {
     private Constructor<?> purchaseConstructor;
     private int purchasePlayerParameter;
     private int purchaseItemParameter;
+    private int purchaseGuiParameter = -1;
+    private Class<?> purchaseGuiType;
     private Method purchaseBuild;
     private long fallbackExpireMillis;
     private boolean ready;
@@ -59,10 +64,16 @@ final class AuctionBridge {
         this.purchaseConstructor = purchaseBinding.constructor();
         this.purchasePlayerParameter = purchaseBinding.playerParameter();
         this.purchaseItemParameter = purchaseBinding.itemParameter();
+        GuiBinding guiBinding = findGuiBinding(purchaseClass, purchaseBinding);
+        if (guiBinding != null) {
+            this.purchaseGuiParameter = guiBinding.parameter();
+            this.purchaseGuiType = guiBinding.type();
+        }
         this.purchaseBuild = purchaseClass.getMethod("build");
         this.ready = true;
         logger.info("Connected to AxAuctions API (purchase constructor: "
-                + purchaseConstructor.getParameterCount() + " parameters).");
+                + purchaseConstructor.getParameterCount() + " parameters, sign GUI context: "
+                + (purchaseGuiType == null ? "not exposed" : purchaseGuiType.getSimpleName()) + ").");
     }
 
     boolean isReady() {
@@ -109,6 +120,9 @@ final class AuctionBridge {
             }
             arguments[purchasePlayerParameter] = player;
             arguments[purchaseItemParameter] = raw;
+            if (purchaseGuiParameter >= 0) {
+                arguments[purchaseGuiParameter] = createGuiContext();
+            }
             Object purchase = purchaseConstructor.newInstance(arguments);
             purchaseBuild.invoke(purchase);
             return PurchaseResult.OPENED;
@@ -184,6 +198,55 @@ final class AuctionBridge {
                 + constructorSignatures(purchaseClass));
     }
 
+    private static GuiBinding findGuiBinding(Class<?> purchaseClass, PurchaseBinding purchaseBinding)
+            throws NoSuchMethodException {
+        Class<?> guiType = null;
+        for (Field field : purchaseClass.getDeclaredFields()) {
+            if (field.getName().equalsIgnoreCase("lastGui")
+                    || field.getType().getSimpleName().equals("PaginatedMenu")) {
+                guiType = field.getType();
+                break;
+            }
+        }
+        if (guiType == null) return null;
+        if (!guiType.isInterface()) {
+            throw new NoSuchMethodException("AxAuctions purchase GUI context " + guiType.getName()
+                    + " is not an interface and cannot be safely supplied for a physical sign purchase");
+        }
+
+        Constructor<?> constructor = purchaseBinding.constructor();
+        Class<?>[] types = constructor.getParameterTypes();
+        Parameter[] parameters = constructor.getParameters();
+        int compatibleFallback = -1;
+        for (int index = 0; index < types.length; index++) {
+            if (index == purchaseBinding.playerParameter() || index == purchaseBinding.itemParameter()) continue;
+            if (types[index].isPrimitive()) continue;
+            if (!(types[index] == Object.class || types[index].isAssignableFrom(guiType))) continue;
+            String name = parameters[index].getName().toLowerCase(java.util.Locale.ROOT);
+            if (name.contains("gui") || name.contains("menu")) {
+                return new GuiBinding(index, guiType);
+            }
+            if (compatibleFallback < 0) compatibleFallback = index;
+        }
+        if (compatibleFallback >= 0) return new GuiBinding(compatibleFallback, guiType);
+        throw new NoSuchMethodException("AxAuctions exposes " + guiType.getName()
+                + " but its selected purchase constructor has no compatible GUI parameter");
+    }
+
+    private Object createGuiContext() {
+        if (purchaseGuiType == null) return null;
+        return Proxy.newProxyInstance(
+                purchaseGuiType.getClassLoader(),
+                new Class<?>[]{purchaseGuiType},
+                (proxy, method, arguments) -> switch (method.getName()) {
+                    case "toString" -> "TownySMPSignPurchaseContext";
+                    case "hashCode" -> System.identityHashCode(proxy);
+                    case "equals" -> arguments != null && arguments.length == 1 && proxy == arguments[0];
+                    default -> defaultValue(method.getReturnType());
+                }
+        );
+    }
+
     private static int matchingParameter(Class<?>[] parameters, Class<?> valueType, int excluded) {
         for (int index = 0; index < parameters.length; index++) {
             if (index == excluded || parameters[index] == Object.class) continue;
@@ -223,6 +286,8 @@ final class AuctionBridge {
     }
 
     private record PurchaseBinding(Constructor<?> constructor, int playerParameter, int itemParameter) {}
+
+    private record GuiBinding(int parameter, Class<?> type) {}
 
     private AuctionListing read(Object raw) throws ReflectiveOperationException {
         if (raw == null) return null;

@@ -16,7 +16,11 @@ Paper 1.21 add-on for AxAuctions. It fills however many showcase slots you confi
    /ahdisplay set 12
    ```
 
-The face of the lower block you look at defines the front. The plugin attaches a dark-oak wall sign there and keeps its four compact lines synchronized with the auction: `Auction #1`, item, price/seller, and `[ BUY ]`. Right-clicking the sign opens AxAuctions' normal purchase confirmation. The invisible item hitbox still works through the showcase glass.
+The face of the lower block you look at defines the front. The plugin attaches a dark-oak wall sign there and keeps its four compact lines synchronized with the auction: `Auction #1`, item, price/seller, and `RIGHT-CLICK BUY`. Right-clicking the sign opens AxAuctions' normal purchase confirmation. The invisible item hitbox still works through the showcase glass.
+
+For physical sign purchases, the add-on supplies AxAuctions with a no-op paginated-menu context. AxAuctions still owns confirmation, payment, inventory delivery and notifications, but it no longer tries to reopen a nonexistent auction GUI after the purchase.
+
+The add-on also listens for AxAuctions' successful-sell event and sends the seller a private message with the actual custom item name, for example `Listed 1x Heavy Core for $100.`. Set `sell.success: ''` in AxAuctions' `lang.yml`, otherwise AxAuctions will send its additional generic message as well.
 Version 1.0.6 automatically switches existing signs away from the crowded glowing layout. Glow can be enabled again later with `settings.sign-glowing-text` if desired.
 The displayed item is centred inside the block space immediately above the targeted lower block. Existing slots saved at the old default height are moved up automatically on first start.
 Existing v1.0.4 slots receive their signs automatically on first start. If the required block in front of a pedestal is occupied, clear it and run `/ahdisplay set <slot>` again while looking at the desired side.

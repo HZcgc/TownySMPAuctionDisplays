@@ -393,7 +393,8 @@ final class DisplayManager {
                 heading,
                 Colors.WHITE + itemName,
                 Colors.YELLOW + price + Colors.GRAY + " | " + Colors.CYAN + seller,
-                Colors.GREEN + "[ BUY ]"
+                Colors.GREEN + shorten(plugin.getConfig().getString(
+                        "settings.sign-buy-text", "RIGHT-CLICK BUY"), 15)
         };
     }
 
