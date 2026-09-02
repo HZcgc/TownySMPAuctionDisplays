@@ -14,8 +14,8 @@ settings:
   rotation-degrees-per-step: 1.8
   item-scale: 0.85
 
-  # /ahdisplay set targets a pedestal block. These offsets are measured from it.
-  item-y-offset: 1.25
+  # Look at the lower block. +1.50 places the item exactly in the centre of the block above it.
+  item-y-offset: 1.50
   text-height: 1.35
 
   # The click target is placed toward the admin who runs /ahdisplay set.

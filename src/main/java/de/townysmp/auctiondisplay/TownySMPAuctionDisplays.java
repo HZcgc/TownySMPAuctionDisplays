@@ -1,6 +1,7 @@
 package de.townysmp.auctiondisplay;
 
 import org.bukkit.command.PluginCommand;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -20,6 +21,7 @@ public final class TownySMPAuctionDisplays extends JavaPlugin implements Listene
     @Override
     public void onEnable() {
         saveDefaultConfig();
+        migrateLegacyDisplayHeight();
         auctionBridge = new AuctionBridge(getLogger(),
                 getConfig().getLong("settings.fallback-listing-duration-seconds", 172_800L));
         Plugin axAuctions = getServer().getPluginManager().getPlugin("AxAuctions");
@@ -49,6 +51,39 @@ public final class TownySMPAuctionDisplays extends JavaPlugin implements Listene
         getServer().getPluginManager().registerEvents(this, this);
         displayManager.start();
         getLogger().info("TownySMP auction showcases enabled. Configure at least 12 with /ahdisplay set <slot>.");
+    }
+
+    private void migrateLegacyDisplayHeight() {
+        final double oldOffset = 1.25D;
+        final double newOffset = 1.50D;
+        boolean changed = false;
+        int movedSlots = 0;
+
+        double configuredOffset = getConfig().getDouble("settings.item-y-offset", newOffset);
+        if (Math.abs(configuredOffset - oldOffset) < 0.0001D) {
+            getConfig().set("settings.item-y-offset", newOffset);
+            changed = true;
+        }
+
+        ConfigurationSection slots = getConfig().getConfigurationSection("slots");
+        if (slots != null) {
+            for (String key : slots.getKeys(false)) {
+                String yPath = "slots." + key + ".y";
+                double y = getConfig().getDouble(yPath, Double.NaN);
+                if (!Double.isFinite(y)) continue;
+                double fraction = y - Math.floor(y);
+                if (Math.abs(fraction - 0.25D) >= 0.0001D) continue;
+                getConfig().set(yPath, y + 0.25D);
+                movedSlots++;
+                changed = true;
+            }
+        }
+
+        if (changed) saveConfig();
+        if (movedSlots > 0) {
+            getLogger().info("Moved " + movedSlots
+                    + " existing auction display slot(s) to the center of the upper block.");
+        }
     }
 
     @Override
