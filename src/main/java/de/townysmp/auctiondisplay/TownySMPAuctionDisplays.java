@@ -24,6 +24,7 @@ public final class TownySMPAuctionDisplays extends JavaPlugin implements Listene
     public void onEnable() {
         saveDefaultConfig();
         migrateLegacyDisplayHeight();
+        migrateCompactSignLayout();
         auctionBridge = new AuctionBridge(getLogger(),
                 getConfig().getLong("settings.fallback-listing-duration-seconds", 172_800L));
         Plugin axAuctions = getServer().getPluginManager().getPlugin("AxAuctions");
@@ -90,6 +91,16 @@ public final class TownySMPAuctionDisplays extends JavaPlugin implements Listene
             getLogger().info("Moved " + movedSlots
                     + " existing auction display slot(s) to the center of the upper block.");
         }
+    }
+
+    private void migrateCompactSignLayout() {
+        final int currentLayout = 2;
+        if (getConfig().isSet("settings.sign-layout-version")
+                && getConfig().getInt("settings.sign-layout-version", 0) >= currentLayout) return;
+        getConfig().set("settings.sign-glowing-text", false);
+        getConfig().set("settings.sign-layout-version", currentLayout);
+        saveConfig();
+        getLogger().info("Switched auction signs to the compact, non-glowing layout.");
     }
 
     @Override

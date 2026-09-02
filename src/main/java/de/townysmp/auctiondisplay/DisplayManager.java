@@ -367,19 +367,19 @@ final class DisplayManager {
         SignSide front = sign.getSide(Side.FRONT);
         String[] lines = signLines(slot.index, listing);
         for (int line = 0; line < lines.length; line++) front.setLine(line, lines[line]);
-        front.setGlowingText(plugin.getConfig().getBoolean("settings.sign-glowing-text", true));
+        front.setGlowingText(plugin.getConfig().getBoolean("settings.sign-glowing-text", false));
         sign.setWaxed(true);
         sign.update(true, false);
     }
 
     private String[] signLines(int slot, AuctionListing listing) {
-        String heading = Colors.PINK + "TOWNY" + Colors.GREEN + "SMP " + Colors.GRAY + "#" + slot;
+        String heading = Colors.PINK + "Auction " + Colors.GRAY + "#" + slot;
         if (listing == null) {
             return new String[]{
                     heading,
-                    Colors.GRAY + "No auction",
+                    Colors.GRAY + "No listing",
                     "",
-                    Colors.PINK + "OPEN /AH"
+                    Colors.PINK + "[ OPEN /AH ]"
             };
         }
         String itemName = itemName(listing.item);
@@ -392,8 +392,8 @@ final class DisplayManager {
         return new String[]{
                 heading,
                 Colors.WHITE + itemName,
-                Colors.YELLOW + price + Colors.GRAY + " · " + Colors.CYAN + seller,
-                Colors.GREEN + Colors.BOLD + "CLICK TO BUY"
+                Colors.YELLOW + price + Colors.GRAY + " | " + Colors.CYAN + seller,
+                Colors.GREEN + "[ BUY ]"
         };
     }
 

@@ -18,7 +18,8 @@ settings:
   # A compact, clickable wall sign replaces the floating text hologram.
   # Any valid *_WALL_SIGN material can be used here.
   sign-material: DARK_OAK_WALL_SIGN
-  sign-glowing-text: true
+  sign-glowing-text: false
+  sign-layout-version: 2
 
   # The invisible click target around the floating item remains available too.
   # This lets the physical item remain behind glass while both item and sign clicks work.

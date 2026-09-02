@@ -5,7 +5,7 @@ Paper 1.21 add-on for AxAuctions. It fills however many showcase slots you confi
 ## Install
 
 1. Keep `auction-purchase-confirmation: true` in AxAuctions.
-2. Put `TownySMPAuctionDisplays-1.0.5.jar` into the **TownySMP server's** `plugins/` folder, next to AxAuctions. Remove older versions of this add-on.
+2. Put `TownySMPAuctionDisplays-1.0.6.jar` into the **TownySMP server's** `plugins/` folder, next to AxAuctions. Remove older versions of this add-on.
 3. Fully restart the server.
 4. Build as many showcases as you want. For every one, stand on the side from which players will click, look at the lower block beneath the intended item position, and run:
 
@@ -16,7 +16,8 @@ Paper 1.21 add-on for AxAuctions. It fills however many showcase slots you confi
    /ahdisplay set 12
    ```
 
-The face of the lower block you look at defines the front. The plugin attaches a dark-oak wall sign there and keeps its four lines synchronized with the auction: slot, item, price/seller, and the buy action. Right-clicking the sign opens AxAuctions' normal purchase confirmation. The invisible item hitbox still works through the showcase glass.
+The face of the lower block you look at defines the front. The plugin attaches a dark-oak wall sign there and keeps its four compact lines synchronized with the auction: `Auction #1`, item, price/seller, and `[ BUY ]`. Right-clicking the sign opens AxAuctions' normal purchase confirmation. The invisible item hitbox still works through the showcase glass.
+Version 1.0.6 automatically switches existing signs away from the crowded glowing layout. Glow can be enabled again later with `settings.sign-glowing-text` if desired.
 The displayed item is centred inside the block space immediately above the targeted lower block. Existing slots saved at the old default height are moved up automatically on first start.
 Existing v1.0.4 slots receive their signs automatically on first start. If the required block in front of a pedestal is occupied, clear it and run `/ahdisplay set <slot>` again while looking at the desired side.
 
