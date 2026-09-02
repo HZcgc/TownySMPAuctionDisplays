@@ -1,11 +1,11 @@
 name: TownySMPAuctionDisplays
-version: 1.0.3
+version: 1.0.4
 main: de.townysmp.auctiondisplay.TownySMPAuctionDisplays
 api-version: '1.21'
 load: POSTWORLD
 depend: [AxAuctions]
 authors: [TownySMP]
-description: Twelve or more clickable physical AxAuctions showcases for the TownySMP spawn.
+description: Any number of clickable physical AxAuctions showcases for the TownySMP spawn.
 
 commands:
   ahdisplay:

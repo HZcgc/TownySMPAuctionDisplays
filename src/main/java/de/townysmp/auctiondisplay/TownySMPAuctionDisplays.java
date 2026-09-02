@@ -50,7 +50,7 @@ public final class TownySMPAuctionDisplays extends JavaPlugin implements Listene
         command.setTabCompleter(displayCommand);
         getServer().getPluginManager().registerEvents(this, this);
         displayManager.start();
-        getLogger().info("TownySMP auction showcases enabled. Configure at least 12 with /ahdisplay set <slot>.");
+        getLogger().info("TownySMP auction showcases enabled. Configure any number of slots with /ahdisplay set <slot>.");
     }
 
     private void migrateLegacyDisplayHeight() {

@@ -146,11 +146,6 @@ final class DisplayManager {
             ));
         }
         slots.sort(Comparator.comparingInt(slot -> slot.index));
-        int minimum = Math.max(12, plugin.getConfig().getInt("settings.minimum-slots", 12));
-        if (slots.size() < minimum) {
-            plugin.getLogger().warning("Only " + slots.size() + " auction display slot(s) are configured; set at least "
-                    + minimum + " with /ahdisplay set <1-" + minimum + ">.");
-        }
     }
 
     private void refreshSafely() {

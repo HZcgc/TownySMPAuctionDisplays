@@ -52,8 +52,7 @@ final class DisplayCommand implements CommandExecutor, TabCompleter {
             }
             case "status" -> sender.sendMessage(Colors.PREFIX + Colors.WHITE + "Configured: "
                     + Colors.GREEN + displays.configuredSlots() + Colors.GRAY + " | " + Colors.WHITE + "Occupied: "
-                    + Colors.YELLOW + displays.occupiedSlots() + Colors.GRAY + " | " + Colors.WHITE + "Minimum: "
-                    + Colors.PINK + Math.max(12, plugin.getConfig().getInt("settings.minimum-slots", 12)));
+                    + Colors.YELLOW + displays.occupiedSlots());
             default -> help(sender, label);
         }
         return true;
@@ -66,7 +65,7 @@ final class DisplayCommand implements CommandExecutor, TabCompleter {
         }
         Integer slot = slot(args);
         if (slot == null) {
-            sender.sendMessage(Colors.PREFIX + Colors.RED + "Usage: /ahdisplay set <slot> (use at least 1-12)");
+            sender.sendMessage(Colors.PREFIX + Colors.RED + "Usage: /ahdisplay set <slot>");
             return;
         }
         Block block = player.getTargetBlockExact(8);

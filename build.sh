@@ -6,7 +6,7 @@ BUILD_DIR="$PROJECT_DIR/build"
 STUB_CLASSES="$BUILD_DIR/stub-classes"
 PLUGIN_CLASSES="$BUILD_DIR/classes"
 OUTPUT_DIR="$PROJECT_DIR/dist"
-JAR_FILE="$OUTPUT_DIR/TownySMPAuctionDisplays-1.0.3.jar"
+JAR_FILE="$OUTPUT_DIR/TownySMPAuctionDisplays-1.0.4.jar"
 
 rm -rf "$BUILD_DIR" "$OUTPUT_DIR"
 mkdir -p "$STUB_CLASSES" "$PLUGIN_CLASSES" "$OUTPUT_DIR"

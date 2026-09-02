@@ -2,9 +2,7 @@
 # Palette: TOWNY #FF55FF, SMP #55FF55, then cyan/yellow/red/gray/white accents.
 
 settings:
-  # The plugin warns until at least 12 showcases have been placed.
-  # There is no 12-slot cap: /ahdisplay set 13, 14, ... adds more listings.
-  minimum-slots: 12
+  # There is no required minimum or slot cap: one showcase works, and 12 or more work too.
 
   # AxAuctions is polled on the main thread every 5 seconds (20 ticks = 1 second).
   update-interval-ticks: 100

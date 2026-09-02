@@ -1,13 +1,13 @@
 # TownySMP Auction Displays
 
-Paper 1.21 add-on for AxAuctions. It shows the 12 newest active listings (or more, when more slots are configured) as floating real item stacks with clickable interaction hitboxes in physical spawn showcases.
+Paper 1.21 add-on for AxAuctions. It fills however many showcase slots you configure with the newest active listings as floating real item stacks with clickable interaction hitboxes. One slot works just as well as 12 or more.
 
 ## Install
 
 1. Keep `auction-purchase-confirmation: true` in AxAuctions.
-2. Put `TownySMPAuctionDisplays-1.0.3.jar` into the **TownySMP server's** `plugins/` folder, next to AxAuctions. Remove older versions of this add-on.
+2. Put `TownySMPAuctionDisplays-1.0.4.jar` into the **TownySMP server's** `plugins/` folder, next to AxAuctions. Remove older versions of this add-on.
 3. Fully restart the server.
-4. Build at least 12 showcases. For every one, stand on the side from which players will click, look at the lower block beneath the intended item position, and run:
+4. Build as many showcases as you want. For every one, stand on the side from which players will click, look at the lower block beneath the intended item position, and run:
 
    ```text
    /ahdisplay set 1
