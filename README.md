@@ -1,0 +1,31 @@
+# TownySMP Auction Displays
+
+Paper 1.21 add-on for AxAuctions. It shows the 12 newest active listings (or more, when more slots are configured) as floating real item stacks with clickable interaction hitboxes in physical spawn showcases.
+
+## Install
+
+1. Keep `auction-purchase-confirmation: true` in AxAuctions.
+2. Put `TownySMPAuctionDisplays-1.0.0.jar` into the **TownySMP server's** `plugins/` folder, next to AxAuctions.
+3. Fully restart the server.
+4. Build at least 12 showcases. For every one, stand on the side from which players will click, look at its pedestal block, and run:
+
+   ```text
+   /ahdisplay set 1
+   /ahdisplay set 2
+   ...
+   /ahdisplay set 12
+   ```
+
+The setup player's position defines the front of the showcase. The invisible click hitbox is moved toward that side so glass does not block it.
+
+## Commands
+
+- `/ahdisplay set <slot>` — save or replace a showcase (slots above 12 are supported)
+- `/ahdisplay remove <slot>` — remove a showcase
+- `/ahdisplay refresh` — immediately poll AxAuctions
+- `/ahdisplay reload` — reload the plugin config and all entities
+- `/ahdisplay status` — configured/occupied slot count
+
+Admin permission: `townysmp.auctiondisplay.admin` (OP by default). Players retain AxAuctions' normal `axauctions.use` permission.
+
+The plugin refreshes every five seconds, orders active listings newest-first, and re-fetches a listing by its AxAuctions ID at click time. AxAuctions still handles the confirmation GUI, economy withdrawal, inventory checks, messages, and final transaction.
