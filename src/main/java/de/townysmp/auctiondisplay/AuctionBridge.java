@@ -1,0 +1,161 @@
+package de.townysmp.auctiondisplay;
+
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+final class AuctionBridge {
+    enum PurchaseResult { OPENED, UNAVAILABLE, OWN_LISTING, NO_PERMISSION, ERROR }
+
+    private final Logger logger;
+    private Method getItems;
+    private Method getItemById;
+    private Constructor<?> purchaseConstructor;
+    private Method purchaseBuild;
+    private long fallbackExpireMillis;
+    private boolean ready;
+
+    AuctionBridge(Logger logger, long fallbackExpireSeconds) {
+        this.logger = logger;
+        setFallbackExpireSeconds(fallbackExpireSeconds);
+    }
+
+    void setFallbackExpireSeconds(long seconds) {
+        this.fallbackExpireMillis = Math.max(60L, seconds) * 1_000L;
+    }
+
+    void initialize() throws ReflectiveOperationException {
+        Class<?> managerClass = Class.forName("com.artillexstudios.axauctions.items.AuctionManager");
+        Class<?> auctionItemClass = Class.forName("com.artillexstudios.axauctions.items.AuctionItem");
+        Class<?> purchaseClass = Class.forName("com.artillexstudios.axauctions.items.actions.PurchaseAuction");
+        this.getItems = managerClass.getMethod("getItems");
+        this.getItemById = managerClass.getMethod("getItemByID", int.class);
+        this.purchaseConstructor = purchaseClass.getConstructor(Player.class, auctionItemClass, Object.class);
+        this.purchaseBuild = purchaseClass.getMethod("build");
+        this.ready = true;
+    }
+
+    boolean isReady() {
+        return ready;
+    }
+
+    List<AuctionListing> newest(int limit) {
+        if (!ready || limit <= 0) return List.of();
+        List<AuctionListing> listings = new ArrayList<>();
+        try {
+            Object raw = getItems.invoke(null);
+            if (!(raw instanceof Map<?, ?> map)) return List.of();
+            for (Object item : new ArrayList<>(map.values())) {
+                try {
+                    AuctionListing listing = read(item);
+                    if (listing != null) listings.add(listing);
+                } catch (ReflectiveOperationException | RuntimeException exception) {
+                    logger.log(Level.FINE, "Skipped one unreadable AxAuctions listing", exception);
+                }
+            }
+        } catch (ReflectiveOperationException exception) {
+            logger.log(Level.SEVERE, "Could not read AxAuctions listings", exception);
+            return List.of();
+        }
+        listings.sort(Comparator.comparingLong((AuctionListing listing) -> listing.startTime)
+                .thenComparingInt(listing -> listing.id).reversed());
+        return listings.size() <= limit ? listings : new ArrayList<>(listings.subList(0, limit));
+    }
+
+    PurchaseResult purchase(Player player, int listingId) {
+        if (!player.hasPermission("axauctions.use")) return PurchaseResult.NO_PERMISSION;
+        try {
+            Object raw = findRaw(listingId);
+            if (raw == null) return PurchaseResult.UNAVAILABLE;
+            AuctionListing listing = read(raw);
+            if (listing == null) return PurchaseResult.UNAVAILABLE;
+            if (listing.sellerUuid != null && listing.sellerUuid.equals(player.getUniqueId())) {
+                return PurchaseResult.OWN_LISTING;
+            }
+            Object purchase = purchaseConstructor.newInstance(player, raw, null);
+            purchaseBuild.invoke(purchase);
+            return PurchaseResult.OPENED;
+        } catch (InvocationTargetException exception) {
+            Throwable cause = exception.getCause() == null ? exception : exception.getCause();
+            logger.log(Level.SEVERE, "AxAuctions rejected display purchase for listing " + listingId, cause);
+            return PurchaseResult.ERROR;
+        } catch (ReflectiveOperationException | RuntimeException exception) {
+            logger.log(Level.SEVERE, "Could not open AxAuctions purchase for listing " + listingId, exception);
+            return PurchaseResult.ERROR;
+        }
+    }
+
+    private Object findRaw(int id) throws ReflectiveOperationException {
+        Object result = getItemById.invoke(null, id);
+        if (result instanceof Optional<?> optional) return optional.orElse(null);
+        return result;
+    }
+
+    private AuctionListing read(Object raw) throws ReflectiveOperationException {
+        if (raw == null) return null;
+        if (booleanValue(callOptional(raw, "isExpired"), false)) return null;
+        if (booleanValue(callOptional(raw, "isDeleted"), false)) return null;
+
+        int id = ((Number) call(raw, "getId")).intValue();
+        Object stackObject = call(raw, "getItemStack");
+        if (!(stackObject instanceof ItemStack stack)) return null;
+        double price = ((Number) call(raw, "getPrice")).doubleValue();
+        long startTime = normalizeEpoch(((Number) call(raw, "getStartTime")).longValue());
+
+        Object sellerObject = call(raw, "getSeller");
+        String seller = String.valueOf(call(sellerObject, "getName"));
+        Object uuidObject = callOptional(sellerObject, "getUUID");
+        UUID sellerUuid = uuidObject instanceof UUID uuid ? uuid : null;
+
+        long expiryDate = numberValue(callOptional(raw, "getExpiryDate"), -1L);
+        expiryDate = normalizeEpoch(expiryDate);
+        if (expiryDate <= 0L) {
+            long expiryValue = numberValue(callOptional(raw, "getExpiryTime"), -1L);
+            if (expiryValue > 0L) {
+                expiryDate = expiryValue > 10_000_000_000L
+                        ? expiryValue
+                        : System.currentTimeMillis() + expiryValue * 1_000L;
+            }
+        }
+        if (expiryDate <= 0L) expiryDate = startTime + fallbackExpireMillis;
+        if (expiryDate <= System.currentTimeMillis()) return null;
+        return new AuctionListing(id, stack, price, seller, sellerUuid, startTime, expiryDate, raw);
+    }
+
+    private static Object call(Object target, String method) throws ReflectiveOperationException {
+        if (target == null) throw new ReflectiveOperationException("Missing target for " + method);
+        return target.getClass().getMethod(method).invoke(target);
+    }
+
+    private static Object callOptional(Object target, String method) {
+        try {
+            return call(target, method);
+        } catch (ReflectiveOperationException ignored) {
+            return null;
+        }
+    }
+
+    private static boolean booleanValue(Object value, boolean fallback) {
+        return value instanceof Boolean bool ? bool : fallback;
+    }
+
+    private static long numberValue(Object value, long fallback) {
+        return value instanceof Number number ? number.longValue() : fallback;
+    }
+
+    private static long normalizeEpoch(long value) {
+        if (value > 0L && value < 10_000_000_000L) return value * 1_000L;
+        return value;
+    }
+}

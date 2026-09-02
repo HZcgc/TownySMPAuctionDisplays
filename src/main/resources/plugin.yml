@@ -1,0 +1,20 @@
+name: TownySMPAuctionDisplays
+version: 1.0.0
+main: de.townysmp.auctiondisplay.TownySMPAuctionDisplays
+api-version: '1.21'
+load: POSTWORLD
+depend: [AxAuctions]
+authors: [TownySMP]
+description: Twelve or more clickable physical AxAuctions showcases for the TownySMP spawn.
+
+commands:
+  ahdisplay:
+    description: Configure the physical TownySMP auction showcases.
+    usage: /ahdisplay <set|remove|refresh|reload|status>
+    aliases: [ahd]
+    permission: townysmp.auctiondisplay.admin
+
+permissions:
+  townysmp.auctiondisplay.admin:
+    description: Configure TownySMP auction showcase slots.
+    default: op

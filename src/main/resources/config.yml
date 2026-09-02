@@ -1,0 +1,36 @@
+# TownySMP physical auction showcases
+# Palette: TOWNY #FF55FF, SMP #55FF55, then cyan/yellow/red/gray/white accents.
+
+settings:
+  # The plugin warns until at least 12 showcases have been placed.
+  # There is no 12-slot cap: /ahdisplay set 13, 14, ... adds more listings.
+  minimum-slots: 12
+
+  # AxAuctions is polled on the main thread every 5 seconds (20 ticks = 1 second).
+  update-interval-ticks: 100
+
+  # Floating item animation.
+  rotation-interval-ticks: 2
+  rotation-degrees-per-step: 1.8
+  item-scale: 0.85
+
+  # /ahdisplay set targets a pedestal block. These offsets are measured from it.
+  item-y-offset: 1.25
+  text-height: 1.35
+
+  # The click target is placed toward the admin who runs /ahdisplay set.
+  # This lets the physical item remain behind glass while clicks still work.
+  interaction-forward-offset: 0.72
+  interaction-y-offset: 0.25
+  interaction-width: 1.35
+  interaction-height: 2.25
+  click-cooldown-millis: 750
+
+  # Used only if the installed AxAuctions build exposes no exact expiry date.
+  fallback-listing-duration-seconds: 172800
+
+  # Clicking a currently empty showcase opens the full auction house.
+  empty-slot-command: ah
+
+# Created automatically by /ahdisplay set <slot>.
+slots: {}
