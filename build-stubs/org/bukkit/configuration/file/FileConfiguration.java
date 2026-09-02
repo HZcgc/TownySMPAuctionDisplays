@@ -10,5 +10,7 @@ public abstract class FileConfiguration implements ConfigurationSection {
     public abstract double getDouble(String path, double def);
     public abstract String getString(String path);
     public abstract String getString(String path, String def);
+    public abstract boolean getBoolean(String path, boolean def);
+    public abstract boolean contains(String path);
     public abstract void set(String path, Object value);
 }

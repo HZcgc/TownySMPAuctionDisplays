@@ -6,9 +6,11 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -50,7 +52,7 @@ public final class TownySMPAuctionDisplays extends JavaPlugin implements Listene
         command.setTabCompleter(displayCommand);
         getServer().getPluginManager().registerEvents(this, this);
         displayManager.start();
-        getLogger().info("TownySMP auction showcases enabled. Configure any number of slots with /ahdisplay set <slot>.");
+        getLogger().info("TownySMP auction showcases enabled with clickable wall signs. Configure any number of slots with /ahdisplay set <slot>.");
     }
 
     private void migrateLegacyDisplayHeight() {
@@ -62,6 +64,10 @@ public final class TownySMPAuctionDisplays extends JavaPlugin implements Listene
         double configuredOffset = getConfig().getDouble("settings.item-y-offset", newOffset);
         if (Math.abs(configuredOffset - oldOffset) < 0.0001D) {
             getConfig().set("settings.item-y-offset", newOffset);
+            changed = true;
+        }
+        if (getConfig().contains("settings.text-height")) {
+            getConfig().set("settings.text-height", null);
             changed = true;
         }
 
@@ -110,6 +116,15 @@ public final class TownySMPAuctionDisplays extends JavaPlugin implements Listene
         if (displayManager == null || !displayManager.isDisplayEntity(event.getRightClicked())) return;
         event.setCancelled(true);
         displayManager.handleClick(event.getPlayer(), event.getRightClicked());
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
+    public void onSignClick(PlayerInteractEvent event) {
+        if (displayManager == null || event.getAction() != Action.RIGHT_CLICK_BLOCK
+                || event.getClickedBlock() == null) return;
+        if (displayManager.handleSignClick(event.getPlayer(), event.getClickedBlock())) {
+            event.setCancelled(true);
+        }
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)

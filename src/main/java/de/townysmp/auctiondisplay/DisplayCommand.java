@@ -2,6 +2,7 @@ package de.townysmp.auctiondisplay;
 
 import org.bukkit.Location;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -70,25 +71,28 @@ final class DisplayCommand implements CommandExecutor, TabCompleter {
         }
         Block block = player.getTargetBlockExact(8);
         if (block == null) {
-            sender.sendMessage(Colors.PREFIX + Colors.RED + "Look directly at the pedestal block inside the showcase.");
+            sender.sendMessage(Colors.PREFIX + Colors.RED + "Look directly at the lower pedestal block.");
             return;
         }
 
+        BlockFace face = player.getTargetBlockFace(8);
         double x = block.getX() + 0.5D;
-        double y = block.getY() + plugin.getConfig().getDouble("settings.item-y-offset", 1.25D);
+        double y = block.getY() + plugin.getConfig().getDouble("settings.item-y-offset", 1.50D);
         double z = block.getZ() + 0.5D;
-        Location playerLocation = player.getLocation();
-        double frontX = playerLocation.getX() - x;
-        double frontZ = playerLocation.getZ() - z;
-        double length = Math.sqrt(frontX * frontX + frontZ * frontZ);
-        if (length < 0.001D) {
-            frontX = 0D;
-            frontZ = 1D;
-        } else {
-            frontX /= length;
-            frontZ /= length;
+        if (!isHorizontal(face)) {
+            Location playerLocation = player.getLocation();
+            face = DisplaySlot.horizontalFace(playerLocation.getX() - x, playerLocation.getZ() - z);
         }
+        Block signBlock = block.getRelative(face);
+        if (!displays.canUseSignBlock(slot, signBlock)) {
+            sender.sendMessage(Colors.PREFIX + Colors.RED + "The block on that side is occupied. "
+                    + Colors.MUTED + "Clear it, then set this showcase again.");
+            return;
+        }
+        double frontX = face.getModX();
+        double frontZ = face.getModZ();
 
+        displays.removeSign(slot);
         String path = "slots." + slot + ".";
         plugin.getConfig().set(path + "world", block.getWorld().getName());
         plugin.getConfig().set(path + "x", x);
@@ -96,10 +100,14 @@ final class DisplayCommand implements CommandExecutor, TabCompleter {
         plugin.getConfig().set(path + "z", z);
         plugin.getConfig().set(path + "front-x", frontX);
         plugin.getConfig().set(path + "front-z", frontZ);
+        plugin.getConfig().set(path + "sign-x", signBlock.getX());
+        plugin.getConfig().set(path + "sign-y", signBlock.getY());
+        plugin.getConfig().set(path + "sign-z", signBlock.getZ());
+        plugin.getConfig().set(path + "sign-facing", face.name());
         plugin.saveConfig();
         displays.restart();
         sender.sendMessage(Colors.PREFIX + Colors.GREEN + "Showcase slot #" + slot + " saved. "
-                + Colors.MUTED + "Its clickable side faces your current position.");
+                + Colors.MUTED + "Its clickable auction sign is attached to the targeted side.");
     }
 
     private void remove(CommandSender sender, String[] args) {
@@ -108,10 +116,15 @@ final class DisplayCommand implements CommandExecutor, TabCompleter {
             sender.sendMessage(Colors.PREFIX + Colors.RED + "Usage: /ahdisplay remove <slot>");
             return;
         }
+        displays.removeSign(slot);
         plugin.getConfig().set("slots." + slot, null);
         plugin.saveConfig();
         displays.restart();
         sender.sendMessage(Colors.PREFIX + Colors.GREEN + "Showcase slot #" + slot + " removed.");
+    }
+
+    private static boolean isHorizontal(BlockFace face) {
+        return face != null && face.getModY() == 0 && (face.getModX() != 0 || face.getModZ() != 0);
     }
 
     private static Integer slot(String[] args) {
@@ -131,7 +144,7 @@ final class DisplayCommand implements CommandExecutor, TabCompleter {
     private static void help(CommandSender sender, String label) {
         sender.sendMessage(Colors.PINK + Colors.BOLD + "TOWNY" + Colors.GREEN + Colors.BOLD + "SMP "
                 + Colors.WHITE + "Auction Displays");
-        sender.sendMessage(Colors.GRAY + "/" + label + " set <slot> " + Colors.MUTED + "- look at the pedestal and save it");
+        sender.sendMessage(Colors.GRAY + "/" + label + " set <slot> " + Colors.MUTED + "- look at a side of the lower pedestal");
         sender.sendMessage(Colors.GRAY + "/" + label + " remove <slot> " + Colors.MUTED + "- remove one showcase");
         sender.sendMessage(Colors.GRAY + "/" + label + " refresh|reload|status");
     }

@@ -14,10 +14,14 @@ settings:
 
   # Look at the lower block. +1.50 places the item exactly in the centre of the block above it.
   item-y-offset: 1.50
-  text-height: 1.35
 
-  # The click target is placed toward the admin who runs /ahdisplay set.
-  # This lets the physical item remain behind glass while clicks still work.
+  # A compact, clickable wall sign replaces the floating text hologram.
+  # Any valid *_WALL_SIGN material can be used here.
+  sign-material: DARK_OAK_WALL_SIGN
+  sign-glowing-text: true
+
+  # The invisible click target around the floating item remains available too.
+  # This lets the physical item remain behind glass while both item and sign clicks work.
   interaction-forward-offset: 0.72
   interaction-y-offset: 0.25
   interaction-width: 1.35
