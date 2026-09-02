@@ -8,6 +8,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -23,6 +24,8 @@ final class AuctionBridge {
     private Method getItems;
     private Method getItemById;
     private Constructor<?> purchaseConstructor;
+    private int purchasePlayerParameter;
+    private int purchaseItemParameter;
     private Method purchaseBuild;
     private long fallbackExpireMillis;
     private boolean ready;
@@ -52,7 +55,10 @@ final class AuctionBridge {
                 "com.artillexstudios.axauctions.items.actions.PurchaseAuction", true, axAuctionsClassLoader);
         this.getItems = findStaticMethod(managerClass, "getItems", 0);
         this.getItemById = findIdMethod(managerClass);
-        this.purchaseConstructor = findPurchaseConstructor(purchaseClass, auctionItemClass);
+        PurchaseBinding purchaseBinding = findPurchaseConstructor(purchaseClass, auctionItemClass);
+        this.purchaseConstructor = purchaseBinding.constructor();
+        this.purchasePlayerParameter = purchaseBinding.playerParameter();
+        this.purchaseItemParameter = purchaseBinding.itemParameter();
         this.purchaseBuild = purchaseClass.getMethod("build");
         this.ready = true;
         logger.info("Connected to AxAuctions API (purchase constructor: "
@@ -97,8 +103,12 @@ final class AuctionBridge {
                 return PurchaseResult.OWN_LISTING;
             }
             Object[] arguments = new Object[purchaseConstructor.getParameterCount()];
-            arguments[0] = player;
-            arguments[1] = raw;
+            Class<?>[] parameterTypes = purchaseConstructor.getParameterTypes();
+            for (int index = 0; index < arguments.length; index++) {
+                arguments[index] = defaultValue(parameterTypes[index]);
+            }
+            arguments[purchasePlayerParameter] = player;
+            arguments[purchaseItemParameter] = raw;
             Object purchase = purchaseConstructor.newInstance(arguments);
             purchaseBuild.invoke(purchase);
             return PurchaseResult.OPENED;
@@ -142,29 +152,77 @@ final class AuctionBridge {
         throw new NoSuchMethodException(managerClass.getName() + ".getItemByID(int)");
     }
 
-    private static Constructor<?> findPurchaseConstructor(Class<?> purchaseClass, Class<?> auctionItemClass)
+    private static PurchaseBinding findPurchaseConstructor(Class<?> purchaseClass, Class<?> auctionItemClass)
             throws NoSuchMethodException {
-        Constructor<?> fallback = null;
-        for (Constructor<?> constructor : purchaseClass.getConstructors()) {
+        PurchaseBinding best = null;
+        int bestScore = Integer.MIN_VALUE;
+        for (Constructor<?> constructor : purchaseClass.getDeclaredConstructors()) {
             Class<?>[] parameters = constructor.getParameterTypes();
             if (parameters.length < 2) continue;
-            if (!parameters[0].isAssignableFrom(Player.class)) continue;
-            if (!parameters[1].isAssignableFrom(auctionItemClass)) continue;
-            boolean nullableTail = true;
-            for (int index = 2; index < parameters.length; index++) {
-                if (parameters[index].isPrimitive()) {
-                    nullableTail = false;
-                    break;
-                }
+            int playerParameter = matchingParameter(parameters, Player.class, -1);
+            int itemParameter = matchingParameter(parameters, auctionItemClass, playerParameter);
+            if (playerParameter < 0 || itemParameter < 0) continue;
+
+            int score = (Modifier.isPublic(constructor.getModifiers()) ? 100 : 0)
+                    - parameters.length * 2
+                    + (playerParameter == 0 ? 10 : 0)
+                    + (itemParameter == 1 ? 10 : 0)
+                    + (parameters[playerParameter] == Player.class ? 5 : 0)
+                    + (parameters[itemParameter] == auctionItemClass ? 5 : 0);
+            if (score <= bestScore) continue;
+            try {
+                constructor.setAccessible(true);
+            } catch (RuntimeException ignored) {
+                // Public constructors remain callable even if accessibility cannot be relaxed.
             }
-            if (!nullableTail) continue;
-            if (parameters.length == 3) return constructor;
-            fallback = constructor;
+            best = new PurchaseBinding(constructor, playerParameter, itemParameter);
+            bestScore = score;
         }
-        if (fallback != null) return fallback;
+        if (best != null) return best;
         throw new NoSuchMethodException(purchaseClass.getName()
-                + " constructor beginning with (Player, AuctionItem)");
+                + " has no usable constructor containing Player and AuctionItem. Available: "
+                + constructorSignatures(purchaseClass));
     }
+
+    private static int matchingParameter(Class<?>[] parameters, Class<?> valueType, int excluded) {
+        for (int index = 0; index < parameters.length; index++) {
+            if (index == excluded || parameters[index] == Object.class) continue;
+            if (parameters[index] == valueType) return index;
+        }
+        for (int index = 0; index < parameters.length; index++) {
+            if (index == excluded || parameters[index] == Object.class) continue;
+            if (parameters[index].isAssignableFrom(valueType)) return index;
+        }
+        return -1;
+    }
+
+    private static Object defaultValue(Class<?> type) {
+        if (!type.isPrimitive()) return null;
+        if (type == boolean.class) return false;
+        if (type == byte.class) return (byte) 0;
+        if (type == short.class) return (short) 0;
+        if (type == int.class) return 0;
+        if (type == long.class) return 0L;
+        if (type == float.class) return 0F;
+        if (type == double.class) return 0D;
+        if (type == char.class) return '\0';
+        return null;
+    }
+
+    private static String constructorSignatures(Class<?> type) {
+        if (type.getDeclaredConstructors().length == 0) return "<none>";
+        List<String> signatures = new ArrayList<>();
+        for (Constructor<?> constructor : type.getDeclaredConstructors()) {
+            String parameters = Arrays.stream(constructor.getParameterTypes())
+                    .map(Class::getTypeName)
+                    .reduce((left, right) -> left + ", " + right)
+                    .orElse("");
+            signatures.add("(" + parameters + ")");
+        }
+        return String.join("; ", signatures);
+    }
+
+    private record PurchaseBinding(Constructor<?> constructor, int playerParameter, int itemParameter) {}
 
     private AuctionListing read(Object raw) throws ReflectiveOperationException {
         if (raw == null) return null;

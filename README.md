@@ -5,7 +5,7 @@ Paper 1.21 add-on for AxAuctions. It shows the 12 newest active listings (or mor
 ## Install
 
 1. Keep `auction-purchase-confirmation: true` in AxAuctions.
-2. Put `TownySMPAuctionDisplays-1.0.1.jar` into the **TownySMP server's** `plugins/` folder, next to AxAuctions. Remove older versions of this add-on.
+2. Put `TownySMPAuctionDisplays-1.0.2.jar` into the **TownySMP server's** `plugins/` folder, next to AxAuctions. Remove older versions of this add-on.
 3. Fully restart the server.
 4. Build at least 12 showcases. For every one, stand on the side from which players will click, look at its pedestal block, and run:
 

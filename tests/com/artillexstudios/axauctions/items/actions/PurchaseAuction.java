@@ -9,7 +9,7 @@ public final class PurchaseAuction {
 
     private final AuctionItem item;
 
-    public PurchaseAuction(Player player, AuctionItem item, Object lastGui) {
+    PurchaseAuction(Object lastGui, AuctionItem item, int page, Player player) {
         this.item = item;
     }
 

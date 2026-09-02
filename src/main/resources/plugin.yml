@@ -1,5 +1,5 @@
 name: TownySMPAuctionDisplays
-version: 1.0.1
+version: 1.0.2
 main: de.townysmp.auctiondisplay.TownySMPAuctionDisplays
 api-version: '1.21'
 load: POSTWORLD
