@@ -25,7 +25,7 @@ public final class AuctionBridgeTest {
         AuctionManager.getItems().get(14).setDeleted(true);
 
         AuctionBridge bridge = new AuctionBridge(Logger.getLogger("test"), 172_800L);
-        bridge.initialize();
+        bridge.initialize(AuctionBridgeTest.class.getClassLoader());
         List<AuctionListing> newest = bridge.newest(12);
         require(newest.size() == 12, "Expected exactly 12 active listings");
         require(newest.get(0).id == 13, "Newest active listing must be first");

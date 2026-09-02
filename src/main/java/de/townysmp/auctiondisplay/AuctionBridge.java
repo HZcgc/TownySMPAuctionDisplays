@@ -6,6 +6,7 @@ import org.bukkit.inventory.ItemStack;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -36,14 +37,26 @@ final class AuctionBridge {
     }
 
     void initialize() throws ReflectiveOperationException {
-        Class<?> managerClass = Class.forName("com.artillexstudios.axauctions.items.AuctionManager");
-        Class<?> auctionItemClass = Class.forName("com.artillexstudios.axauctions.items.AuctionItem");
-        Class<?> purchaseClass = Class.forName("com.artillexstudios.axauctions.items.actions.PurchaseAuction");
-        this.getItems = managerClass.getMethod("getItems");
-        this.getItemById = managerClass.getMethod("getItemByID", int.class);
-        this.purchaseConstructor = purchaseClass.getConstructor(Player.class, auctionItemClass, Object.class);
+        initialize(AuctionBridge.class.getClassLoader());
+    }
+
+    void initialize(ClassLoader axAuctionsClassLoader) throws ReflectiveOperationException {
+        if (axAuctionsClassLoader == null) {
+            throw new ClassNotFoundException("AxAuctions class loader is unavailable");
+        }
+        Class<?> managerClass = Class.forName(
+                "com.artillexstudios.axauctions.items.AuctionManager", true, axAuctionsClassLoader);
+        Class<?> auctionItemClass = Class.forName(
+                "com.artillexstudios.axauctions.items.AuctionItem", true, axAuctionsClassLoader);
+        Class<?> purchaseClass = Class.forName(
+                "com.artillexstudios.axauctions.items.actions.PurchaseAuction", true, axAuctionsClassLoader);
+        this.getItems = findStaticMethod(managerClass, "getItems", 0);
+        this.getItemById = findIdMethod(managerClass);
+        this.purchaseConstructor = findPurchaseConstructor(purchaseClass, auctionItemClass);
         this.purchaseBuild = purchaseClass.getMethod("build");
         this.ready = true;
+        logger.info("Connected to AxAuctions API (purchase constructor: "
+                + purchaseConstructor.getParameterCount() + " parameters).");
     }
 
     boolean isReady() {
@@ -83,7 +96,10 @@ final class AuctionBridge {
             if (listing.sellerUuid != null && listing.sellerUuid.equals(player.getUniqueId())) {
                 return PurchaseResult.OWN_LISTING;
             }
-            Object purchase = purchaseConstructor.newInstance(player, raw, null);
+            Object[] arguments = new Object[purchaseConstructor.getParameterCount()];
+            arguments[0] = player;
+            arguments[1] = raw;
+            Object purchase = purchaseConstructor.newInstance(arguments);
             purchaseBuild.invoke(purchase);
             return PurchaseResult.OPENED;
         } catch (InvocationTargetException exception) {
@@ -97,9 +113,57 @@ final class AuctionBridge {
     }
 
     private Object findRaw(int id) throws ReflectiveOperationException {
-        Object result = getItemById.invoke(null, id);
+        Class<?> idType = getItemById.getParameterTypes()[0];
+        Object argument = idType == long.class || idType == Long.class ? (long) id
+                : idType == String.class ? String.valueOf(id) : id;
+        Object result = getItemById.invoke(null, argument);
         if (result instanceof Optional<?> optional) return optional.orElse(null);
         return result;
+    }
+
+    private static Method findStaticMethod(Class<?> type, String name, int parameterCount)
+            throws NoSuchMethodException {
+        for (Method method : type.getMethods()) {
+            if (!method.getName().equals(name) || method.getParameterCount() != parameterCount) continue;
+            if (!Modifier.isStatic(method.getModifiers())) continue;
+            return method;
+        }
+        throw new NoSuchMethodException(type.getName() + "." + name + " with " + parameterCount + " parameters");
+    }
+
+    private static Method findIdMethod(Class<?> managerClass) throws NoSuchMethodException {
+        for (Method method : managerClass.getMethods()) {
+            if (!(method.getName().equals("getItemByID") || method.getName().equals("getItemById"))) continue;
+            if (!Modifier.isStatic(method.getModifiers()) || method.getParameterCount() != 1) continue;
+            Class<?> type = method.getParameterTypes()[0];
+            if (type == int.class || type == Integer.class || type == long.class || type == Long.class
+                    || type == String.class) return method;
+        }
+        throw new NoSuchMethodException(managerClass.getName() + ".getItemByID(int)");
+    }
+
+    private static Constructor<?> findPurchaseConstructor(Class<?> purchaseClass, Class<?> auctionItemClass)
+            throws NoSuchMethodException {
+        Constructor<?> fallback = null;
+        for (Constructor<?> constructor : purchaseClass.getConstructors()) {
+            Class<?>[] parameters = constructor.getParameterTypes();
+            if (parameters.length < 2) continue;
+            if (!parameters[0].isAssignableFrom(Player.class)) continue;
+            if (!parameters[1].isAssignableFrom(auctionItemClass)) continue;
+            boolean nullableTail = true;
+            for (int index = 2; index < parameters.length; index++) {
+                if (parameters[index].isPrimitive()) {
+                    nullableTail = false;
+                    break;
+                }
+            }
+            if (!nullableTail) continue;
+            if (parameters.length == 3) return constructor;
+            fallback = constructor;
+        }
+        if (fallback != null) return fallback;
+        throw new NoSuchMethodException(purchaseClass.getName()
+                + " constructor beginning with (Player, AuctionItem)");
     }
 
     private AuctionListing read(Object raw) throws ReflectiveOperationException {

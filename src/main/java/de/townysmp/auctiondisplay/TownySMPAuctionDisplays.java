@@ -8,6 +8,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.logging.Level;
@@ -21,9 +22,15 @@ public final class TownySMPAuctionDisplays extends JavaPlugin implements Listene
         saveDefaultConfig();
         auctionBridge = new AuctionBridge(getLogger(),
                 getConfig().getLong("settings.fallback-listing-duration-seconds", 172_800L));
+        Plugin axAuctions = getServer().getPluginManager().getPlugin("AxAuctions");
+        if (axAuctions == null || !axAuctions.isEnabled()) {
+            getLogger().severe("AxAuctions is missing or disabled; TownySMPAuctionDisplays cannot start.");
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
         try {
-            auctionBridge.initialize();
-        } catch (ReflectiveOperationException exception) {
+            auctionBridge.initialize(axAuctions.getClass().getClassLoader());
+        } catch (ReflectiveOperationException | LinkageError | RuntimeException exception) {
             getLogger().log(Level.SEVERE, "Unsupported AxAuctions build: its auction or purchase API could not be found.", exception);
             getServer().getPluginManager().disablePlugin(this);
             return;

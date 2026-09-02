@@ -32,6 +32,12 @@ final class DisplayCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
+        // Convenient shorthand: /ahdisplay 1 behaves like /ahdisplay set 1.
+        if (args.length == 1 && parseSlot(args[0]) != null) {
+            set(sender, new String[]{"set", args[0]});
+            return true;
+        }
+
         String action = args[0].toLowerCase(Locale.ROOT);
         switch (action) {
             case "set" -> set(sender, args);
@@ -111,8 +117,12 @@ final class DisplayCommand implements CommandExecutor, TabCompleter {
 
     private static Integer slot(String[] args) {
         if (args.length < 2) return null;
+        return parseSlot(args[1]);
+    }
+
+    private static Integer parseSlot(String input) {
         try {
-            int value = Integer.parseInt(args[1]);
+            int value = Integer.parseInt(input);
             return value > 0 && value <= 250 ? value : null;
         } catch (NumberFormatException ignored) {
             return null;
